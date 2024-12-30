@@ -22,6 +22,39 @@ if ($decodedUrl === false || !filter_var($decodedUrl, FILTER_VALIDATE_URL)) {
     exit;
 }
 
+// base domain extraction
+$parsedUrl = parse_url($decodedUrl);
+if (!isset($parsedUrl['host'])) {
+    http_response_code(400); // Bad Request
+    echo "Fehler: Keine gültige Host-Domain gefunden.";
+    exit;
+}
+
+// Extract the root domain
+$hostParts = explode('.', $parsedUrl['host']);
+$hostPartsCount = count($hostParts);
+if ($hostPartsCount > 2) {
+    $baseDomain = implode('.', array_slice($hostParts, -2));
+} else {
+    $baseDomain = $parsedUrl['host'];
+}
+
+// allowlist check
+$allowlistFile = __DIR__ . '/Z2NKw4gZg2OzSkHUoGWv.txt';
+if (!file_exists($allowlistFile)) {
+    http_response_code(500); // Internal Server Error
+    echo "Fehler: Allowlist-Datei nicht gefunden.";
+    exit;
+}
+
+$allowlist = file($allowlistFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+if ($allowlist === false || !in_array($baseDomain, $allowlist)) {
+    // Redirect to Google search with the original URL
+    $googleSearchUrl = "https://www.google.com/search?q=" . urlencode($decodedUrl);
+    header("Location: $googleSearchUrl");
+    exit;
+}
+
 // get
 $options = [
     "http" => [
